@@ -1,4 +1,4 @@
-mport streamlit as st
+import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 # 사용할 CSV 파일명 (사용자 파일과 동일)
 CSV_FILENAME = "서울시 상권분석서비스(추정매출-자치구).csv"
 
-# 데이터 로딩 및 캐싱 (Streamlit의 성능 최적화 기i능)
+# 데이터 로딩 및 캐싱 (Streamlit의 성능 최적화 기능)
 @st.cache_data
 def load_and_analyze_data():
     """
@@ -143,9 +143,9 @@ def main():
 
     # 1. 연령대별 차트
     st.subheader("1. 📈 연령대별 매출 기여도")
-    st.plotly_chart(create_age_chart(df_age), use_container_width=True임을 보여줍니다.")
-)
-    st.info("💡 **분석 인사이트:** 20대와 30대가 서울 상권 매출의  소비주요층
+    st.plotly_chart(create_age_chart(df_age), use_container_width=True)
+    st.info("💡 **분석 인사이트:** 20대와 30대가 서울 상권 매출의 주요 소비층임을 보여줍니다.")
+
     # 2. 주중/주말 차트
     st.subheader("2. 🗓️ 주중 vs 주말 소비 집중도")
     st.plotly_chart(create_day_chart(df_day), use_container_width=True)
@@ -158,3 +158,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
