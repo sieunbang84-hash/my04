@@ -12,11 +12,22 @@ def load_and_analyze_data():
     """
     CSV 파일을 불러와 필요한 데이터를 분석합니다.
     """
+    df = None
+    
+    # 1. 'utf-8' 인코딩 시도 (가장 보편적인 인코딩)
     try:
-        # 데이터 로드 시 인코딩 문제 방지를 위해 'cp949' 또는 'euc-kr' 시도
-        df = pd.read_csv(CSV_FILENAME, encoding='euc-kr')
+        df = pd.read_csv(CSV_FILENAME, encoding='utf-8')
+    except UnicodeDecodeError:
+        # 2. 'utf-8' 실패 시 'euc-kr' 또는 'cp949' 시도
+        try:
+            df = pd.read_csv(CSV_FILENAME, encoding='euc-kr')
+        except Exception as e:
+            st.error(f"데이터 파일을 로드하는 데 실패했습니다. 파일명 '{CSV_FILENAME}'과 인코딩을 확인해 주세요.")
+            st.error(f"에러 상세: {e}")
+            return None
     except Exception as e:
-        st.error(f"데이터 파일을 로드하는 데 실패했습니다. 파일명 '{CSV_FILENAME}'과 인코딩을 확인해 주세요.")
+        # 기타 파일 로드 오류 처리 (예: 파일 경로 없음 등)
+        st.error(f"데이터 파일을 로드하는 데 실패했습니다. 파일명 '{CSV_FILENAME}'과 경로를 확인해 주세요.")
         st.error(f"에러 상세: {e}")
         return None
 
