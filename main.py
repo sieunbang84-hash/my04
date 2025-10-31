@@ -51,7 +51,7 @@ else:
 orig_columns = list(df.columns)
 df.columns = [c.strip() for c in orig_columns]
 
-# --- 지역별 필터링 기능 추가 (요청 사항) ---
+# --- 지역별 필터링 기능 ---
 df_filtered = df.copy()
 
 st.sidebar.header("🗺️ 지역별 필터")
@@ -92,29 +92,65 @@ st.sidebar.header("시각화 설정")
 
 if len(df_filtered.columns) >= 2 and not df_filtered.empty:
     
-    # X/Y 컬럼 옵션은 필터링 이전의 전체 컬럼 목록을 사용합니다.
-    x_col = st.sidebar.selectbox("X축 컬럼 선택", options=df.columns) 
-    y_col = st.sidebar.selectbox("Y축 컬럼 선택", options=df.columns)
+    # --- X축 선택 컬럼 제한 ---
+    # 구역(자치구_코드_명) 또는 서비스 종목(서비스_업종_코드_명)만 선택 가능
+    available_x_cols = [
+        col for col in df.columns 
+        if col in ['자치구_코드_명', '서비스_업종_코드_명']
+    ]
+    
+    if not available_x_cols:
+        st.error("X축으로 설정 가능한 컬럼(자치구_코드_명, 서비스_업종_코드_명)이 데이터에 없습니다.")
+        st.stop()
+        
+    x_col = st.sidebar.selectbox("X축 컬럼 선택 (구역/서비스 종목)", options=available_x_cols) 
 
-    chart_type = st.sidebar.radio("그래프 종류", ["라인 그래프", "막대 그래프", "산점도"])
+    # --- Y축 선택 컬럼 제한 ---
+    # 매출 관련 컬럼(나이대별 포함)만 선택 가능하도록 필터링
+    # '매출_금액' 또는 '매출_건수'를 포함하는 컬럼만 선택
+    available_y_cols = [
+        col for col in df.columns 
+        if '매출_금액' in col or '매출_건수' in col
+    ]
+    
+    if not available_y_cols:
+        st.error("Y축으로 설정 가능한 매출 관련 컬럼이 데이터에 없습니다.")
+        st.stop()
+        
+    y_col = st.sidebar.selectbox("Y축 컬럼 선택 (매출액/건수)", options=available_y_cols)
+
+    # --- 그래프 종류: 막대 그래프로 고정 ---
+    chart_type = "막대 그래프" 
 
     st.subheader(f"시각화 결과 (선택 지역: {', '.join(selected_regions) if 'selected_regions' in locals() and selected_regions else '전체'})")
 
     try:
-        # 필터링된 데이터 (df_filtered)를 사용하여 시각화
-        if chart_type == "라인 그래프":
-            fig = px.line(df_filtered, x=x_col, y=y_col, title=f"{y_col} 변화 추이 ({x_col} 기준)")
-        elif chart_type == "막대 그래프":
-            fig = px.bar(df_filtered, x=x_col, y=y_col, title=f"{y_col} 막대그래프 ({x_col} 기준)")
-        else:
-            fig = px.scatter(df_filtered, x=x_col, y=y_col, title=f"{x_col} vs {y_col} 산점도")
+        # 막대 그래프만 사용
+        # 데이터가 여러 행일 경우, 그룹화하여 합산 후 시각화
+        
+        # 선택된 X축을 기준으로 Y축 값을 합산
+        df_grouped = df_filtered.groupby(x_col, as_index=False)[y_col].sum()
+        
+        fig = px.bar(
+            df_grouped, 
+            x=x_col, 
+            y=y_col, 
+            title=f"{y_col} 막대그래프 ({x_col} 기준 합산)",
+            labels={x_col: x_col.replace('_', ' '), y_col: y_col.replace('_', ' ') + ' (합산)'} # 라벨 정리
+        )
 
-        fig.update_layout(title_x=0.5, template="plotly_white")
+        # Y축 숫자에 콤마 추가 (가독성 향상)
+        fig.update_layout(
+            title_x=0.5, 
+            template="plotly_white",
+            yaxis=dict(tickformat=',.0f') 
+        )
         st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
         st.error(f"그래프를 그리는 중 오류 발생: {e}")
-        st.warning("선택하신 컬럼이 숫자로 시각화 가능하거나, 범주형/시간 컬럼이 올바르게 선택되었는지 확인해주세요.")
+        st.warning(f"선택하신 컬럼의 데이터 형식과 그룹화가 올바른지 확인해주세요. (현재 X축: {x_col}, Y축: {y_col})")
 else:
     st.warning("시각화할 데이터가 없거나, 컬럼 수가 부족합니다. 파일을 확인하거나 필터를 조정해주세요.")
+
 
